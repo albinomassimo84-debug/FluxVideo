@@ -7,8 +7,8 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Netlify Identity Widget -->
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 
   <style>
     * {
@@ -61,80 +61,51 @@
       backdrop-filter: blur(18px);
       border: 1px solid rgba(255,255,255,0.12);
       box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+      text-align: center;
     }
 
     .logo {
-      text-align: center;
       font-size: 42px;
       margin-bottom: 10px;
     }
 
     h1 {
-      text-align: center;
       font-size: 30px;
       font-weight: 700;
       margin-bottom: 10px;
     }
 
     .subtitle {
-      text-align: center;
       opacity: 0.75;
       font-size: 14px;
-      margin-bottom: 30px;
-    }
-
-    .tabs {
-      display: flex;
-      background: rgba(255,255,255,0.05);
-      border-radius: 14px;
-      padding: 5px;
       margin-bottom: 25px;
     }
 
-    .tab {
-      flex: 1;
-      text-align: center;
-      padding: 12px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    .active {
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    }
-
-    .form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    input {
-      padding: 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.05);
-      color: white;
-      outline: none;
-    }
-
     button {
+      width: 100%;
       padding: 14px;
+      margin: 10px 0;
       border: none;
       border-radius: 14px;
       background: linear-gradient(135deg, #3b82f6, #8b5cf6);
       color: white;
       font-weight: 600;
       cursor: pointer;
+      transition: 0.3s;
     }
 
-    .hidden { display: none; }
+    button:hover {
+      transform: translateY(-2px);
+    }
 
-    .msg {
-      text-align: center;
+    .status {
       margin-top: 15px;
       font-size: 13px;
       opacity: 0.8;
+    }
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
@@ -146,71 +117,41 @@
 <div class="container">
   <div class="logo">🎬</div>
   <h1>Video Platform</h1>
-  <div class="subtitle">Login con Supabase</div>
+  <div class="subtitle">Login con Netlify</div>
 
-  <div class="tabs">
-    <div class="tab active" id="loginTab" onclick="showLogin()">Accedi</div>
-    <div class="tab" id="registerTab" onclick="showRegister()">Registrati</div>
-  </div>
+  <button onclick="netlifyIdentity.open('login')">🔐 Accedi</button>
+  <button onclick="netlifyIdentity.open('signup')">✨ Registrati</button>
+  <button id="logoutBtn" class="hidden" onclick="logout()">🚪 Logout</button>
 
-  <div id="loginForm" class="form">
-    <input id="loginEmail" type="email" placeholder="Email">
-    <input id="loginPassword" type="password" placeholder="Password">
-    <button onclick="login()">Accedi</button>
-  </div>
-
-  <div id="registerForm" class="form hidden">
-    <input id="registerEmail" type="email" placeholder="Email">
-    <input id="registerPassword" type="password" placeholder="Password">
-    <button onclick="register()">Crea account</button>
-  </div>
-
-  <div class="msg" id="msg"></div>
+  <div class="status" id="status">Non sei loggato</div>
 </div>
 
 <script>
-  // 🔥 CONFIGURA QUI IL TUO SUPABASE
-  const supabaseUrl = "sb_publishable_efGCZLbVAtzP4ayaRsraAQ_uWY4SEYH";
-  const supabaseKey = "sb_secret_hHySVynfjLAD5ryhe8ForQ_mUGE5ugn";
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  const status = document.getElementById('status');
+  const logoutBtn = document.getElementById('logoutBtn');
 
-  const loginTab = document.getElementById('loginTab');
-  const registerTab = document.getElementById('registerTab');
-  const loginForm = document.getElementById('loginForm');
-  const registerForm = document.getElementById('registerForm');
-  const msg = document.getElementById('msg');
-
-  function showLogin() {
-    loginTab.classList.add('active');
-    registerTab.classList.remove('active');
-    loginForm.classList.remove('hidden');
-    registerForm.classList.add('hidden');
+  function updateUser(user) {
+    if (user) {
+      status.textContent = "Loggato come: " + user.email;
+      logoutBtn.classList.remove('hidden');
+    } else {
+      status.textContent = "Non sei loggato";
+      logoutBtn.classList.add('hidden');
+    }
   }
 
-  function showRegister() {
-    registerTab.classList.add('active');
-    loginTab.classList.remove('active');
-    registerForm.classList.remove('hidden');
-    loginForm.classList.add('hidden');
+  function logout() {
+    netlifyIdentity.logout();
   }
 
-  async function login() {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+  netlifyIdentity.on('init', user => updateUser(user));
+  netlifyIdentity.on('login', user => {
+    updateUser(user);
+    netlifyIdentity.close();
+  });
+  netlifyIdentity.on('logout', () => updateUser(null));
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    msg.textContent = error ? error.message : "Login riuscito 🚀";
-  }
-
-  async function register() {
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-
-    const { error } = await supabase.auth.signUp({ email, password });
-
-    msg.textContent = error ? error.message : "Account creato! Controlla email 📩";
-  }
+  netlifyIdentity.init();
 </script>
 
 </body>
